@@ -1,0 +1,1 @@
+# projeto_de_bloco_analise_varejo

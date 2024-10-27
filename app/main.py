@@ -1,9 +1,8 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from joblib import load
-from pydantic import BaseModel
-import psycopg2
-import pandas as pd
+from psycopg2 import connect
 import os
+import json
 
 # Inicializa a API FastAPI
 app = FastAPI()
@@ -11,11 +10,11 @@ app = FastAPI()
 # Carrega o modelo de ML (joblib)
 modelo = load("models/customer_segments.joblib")
 
-# Conexão com o Supabase usando variáveis de ambiente
+# Conexão com o banco de dados Supabase
 SUPABASE_URL = os.getenv("SUPABASE_URL").replace("https://", "").replace(".supabase.co", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-conn = psycopg2.connect(
+conn = connect(
     host=SUPABASE_URL,
     port=5432,
     user="postgres",
@@ -23,32 +22,34 @@ conn = psycopg2.connect(
     database="postgres"
 )
 
-# Definindo o modelo de dados esperado para a API
-class InputData(BaseModel):
-    feature1: float
-    feature2: float
-    feature3: float
-
 @app.get("/")
 def home():
     return {"mensagem": "API de Previsão Online está ativa!"}
 
 @app.post("/previsao/")
-def previsao(dados: InputData):
+async def previsao(request: Request):
     try:
-        # Prepara os dados de entrada para o modelo
-        entrada = [[dados.feature1, dados.feature2, dados.feature3]]
-        resultado = modelo.predict(entrada)
+        # Recebe os dados dinâmicos enviados pelo cliente
+        dados = await request.json()
+        
+        # Extrai as features para o modelo (ajuste conforme necessário)
+        features = [[dados.get("feature1", 0), dados.get("feature2", 0), dados.get("feature3", 0)]]
+        resultado = modelo.predict(features)
 
-        # Armazena a previsão no banco de dados do Supabase
+        # Gera o comando SQL dinamicamente com base nos dados recebidos
+        colunas = ', '.join(dados.keys()) + ', previsao'
+        valores = ', '.join(['%s'] * (len(dados) + 1))
+
+        # Executa o comando SQL para inserir a previsão e os dados recebidos
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO previsoes (feature1, feature2, feature3, previsao) VALUES (%s, %s, %s, %s)",
-            (dados.feature1, dados.feature2, dados.feature3, resultado[0])
+            f"INSERT INTO previsoes ({colunas}) VALUES ({valores})",
+            list(dados.values()) + [int(resultado[0])]
         )
         conn.commit()
         cursor.close()
 
         return {"previsao": int(resultado[0])}
+    
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

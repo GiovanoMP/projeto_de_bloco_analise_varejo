@@ -39,3 +39,20 @@ class HealthCheck(BaseModel):
     timestamp: datetime
     database_connected: bool
     version: str
+
+
+
+class TemporalDataPoint(BaseModel):
+    """Ponto de dados para análise temporal"""
+    date: datetime
+    total_sales: float
+    unique_customers: int
+    transactions: int
+    moving_avg_sales: float
+    growth_rate: float
+    trend: str
+
+class TemporalAnalytics(BaseModel):
+    """Resposta para análise temporal de vendas"""
+    data: List[TemporalDataPoint]
+    metrics: SalesMetrics

@@ -27,7 +27,6 @@ DEFAULT_YEAR = 2011
 DATE_MIN = datetime(DEFAULT_YEAR, 1, 1)
 DATE_MAX = datetime(DEFAULT_YEAR, 12, 31)
 
-# Funções de API
 @st.cache_data(ttl=3600)
 def get_sales_data(start_date, end_date):
     """Busca dados de vendas"""
@@ -74,7 +73,7 @@ def get_temporal_data(start_date, end_date, window=7):
     except Exception as e:
         st.error(f"Erro ao conectar com a API temporal: {str(e)}")
         return None
-
+        
 # Funções auxiliares
 def format_currency(value):
     return f"R$ {value:,.2f}"

@@ -1,4 +1,3 @@
-# Importações necessárias
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
@@ -8,6 +7,7 @@ import requests
 from datetime import datetime, timedelta
 import calendar
 import logging
+from typing import Dict, List, Optional
 
 # Configuração de logging
 logging.basicConfig(level=logging.INFO)
@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 
 # Configuração inicial da página
 st.set_page_config(
-    page_title="RetailSense AI - Analytics",
-    page_icon="📊",
+    page_title="RetailSense AI - Análise de Produtos",
+    page_icon="📦",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -24,270 +24,322 @@ st.set_page_config(
 # Configurações da API e constantes
 API_BASE_URL = "http://localhost:8000/api/v1/analytics"
 DEFAULT_YEAR = 2011
-DATE_MIN = datetime(DEFAULT_YEAR, 1, 1)
-DATE_MAX = datetime(DEFAULT_YEAR, 12, 31)
 
 # Funções de API
 @st.cache_data(ttl=3600)
-def get_sales_data(start_date, end_date):
-    """Busca dados de vendas"""
+def get_product_data(limit: int = 50) -> Optional[List[Dict]]:
+    """
+    Busca dados de produtos da API
+    
+    Args:
+        limit: Número máximo de produtos a retornar
+        
+    Returns:
+        Lista de produtos com suas métricas ou None em caso de erro
+    """
     try:
         response = requests.get(
-            f"{API_BASE_URL}/sales",
-            params={
-                "start_date": start_date.strftime("%Y-%m-%d"),
-                "end_date": end_date.strftime("%Y-%m-%d")
-            },
+            f"{API_BASE_URL}/products",
+            params={"limit": limit},
             timeout=10
         )
         
         if response.status_code == 200:
             return response.json()
         else:
-            st.error(f"Erro na API (Status {response.status_code})")
+            st.error(f"Erro na API de produtos (Status {response.status_code})")
             return None
             
     except Exception as e:
-        st.error(f"Erro ao conectar com a API: {str(e)}")
-        return None
-
-@st.cache_data(ttl=3600)
-def get_temporal_data(start_date, end_date, window=7):
-    """Busca dados temporais"""
-    try:
-        response = requests.get(
-            f"{API_BASE_URL}/sales/temporal",
-            params={
-                "start_date": start_date.strftime("%Y-%m-%d"),
-                "end_date": end_date.strftime("%Y-%m-%d"),
-                "window": window
-            },
-            timeout=10
-        )
-        
-        if response.status_code == 200:
-            return response.json()
-        else:
-            st.error(f"Erro na API temporal (Status {response.status_code})")
-            return None
-            
-    except Exception as e:
-        st.error(f"Erro ao conectar com a API temporal: {str(e)}")
+        logger.error(f"Erro ao conectar com a API de produtos: {str(e)}")
+        st.error(f"Erro ao carregar dados de produtos: {str(e)}")
         return None
 
 # Funções auxiliares
-def format_currency(value):
+def format_currency(value: float) -> str:
+    """Formata valor para moeda brasileira"""
     return f"R$ {value:,.2f}"
 
-def calculate_metrics(temporal_data):
-    """Calcula métricas adicionais"""
-    if temporal_data is None:
-        return None
+def format_number(value: float) -> str:
+    """Formata números com separadores de milhar"""
+    return f"{value:,.0f}"
+
+def calculate_product_metrics(df: pd.DataFrame) -> Dict:
+    """
+    Calcula métricas gerais dos produtos
     
-    df = pd.DataFrame(temporal_data)
-    df['date'] = pd.to_datetime(df['date'])
-    df['month'] = df['date'].dt.month
-    df['day_of_week'] = df['date'].dt.dayofweek
-    
-    monthly_data = df.groupby('month').agg({
-        'total_sales': 'sum',
-        'transactions': 'sum',
-        'unique_customers': 'mean'
-    }).reset_index()
-    
-    daily_data = df.groupby('day_of_week').agg({
-        'total_sales': 'mean',
-        'transactions': 'mean'
-    }).reset_index()
-    
-    daily_data['day_name'] = daily_data['day_of_week'].apply(lambda x: calendar.day_name[x])
-    
-    return {
-        'monthly_data': monthly_data,
-        'daily_data': daily_data,
-        'trends': {
-            'best_day': daily_data.loc[daily_data['total_sales'].idxmax(), 'day_name'],
-            'best_month': calendar.month_name[monthly_data.loc[monthly_data['total_sales'].idxmax(), 'month']],
-            'avg_ticket_trend': (df['total_sales'] / df['transactions']).mean(),
-            'customer_frequency': (df['transactions'] / df['unique_customers']).mean()
+    Args:
+        df: DataFrame com dados dos produtos
+        
+    Returns:
+        Dicionário com métricas calculadas
+    """
+    try:
+        metrics = {
+            "total_revenue": df["total_revenue"].sum(),
+            "total_quantity": df["total_quantity"].sum(),
+            "avg_price": df["total_revenue"].sum() / df["total_quantity"].sum(),
+            "unique_products": len(df),
+            "categories": df["category"].nunique(),
+            "top_category": df.groupby("category")["total_revenue"].sum().idxmax(),
+            "best_seller": df.loc[df["total_quantity"].idxmax(), "description"]
         }
-    }
+        return metrics
+    except Exception as e:
+        logger.error(f"Erro ao calcular métricas: {str(e)}")
+        return {}
 
-def create_sales_chart(temporal_data, window):
-    """Cria gráfico de vendas"""
-    fig = go.Figure()
-    
-    df = pd.DataFrame(temporal_data)
-    
-    # Vendas diárias
-    fig.add_trace(go.Scatter(
-        x=df['date'],
-        y=df['total_sales'],
-        name='Vendas Diárias',
-        mode='lines',
-        line=dict(color='#4287f5', width=2)
-    ))
-    
-    # Média móvel
-    fig.add_trace(go.Scatter(
-        x=df['date'],
-        y=df['moving_avg_sales'],
-        name=f'Média Móvel ({window} dias)',
-        mode='lines',
-        line=dict(color='#ff6b3d', width=2, dash='dash')
-    ))
-    
-    fig.update_layout(
-        title='Evolução de Vendas',
-        template='plotly_dark',
-        xaxis_title='Data',
-        yaxis_title='Vendas (R$)',
-        hovermode='x unified'
-    )
-    
-    return fig
-
-def create_sales_dashboard(sales_data, temporal_data, advanced_metrics):
-    """Cria dashboard completo de vendas"""
-    
-    # KPIs Principais
-    st.markdown("### Métricas Principais")
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.metric("Total de Vendas", format_currency(sales_data['total_sales']))
-    with col2:
-        st.metric("Ticket Médio", format_currency(sales_data['average_ticket']))
-    with col3:
-        st.metric("Clientes Únicos", f"{sales_data['total_customers']:,}")
-    with col4:
-        st.metric("Total Transações", f"{sales_data['total_transactions']:,}")
-    
-    # Gráficos em Tabs
-    tab1, tab2, tab3 = st.tabs(["📈 Tendências", "📊 Análise Temporal", "🎯 Insights"])
-    
-    with tab1:
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Vendas por Dia da Semana
-            fig_daily = px.bar(
-                advanced_metrics['daily_data'],
-                x='day_name',
-                y='total_sales',
-                title='Média de Vendas por Dia da Semana',
-                labels={'total_sales': 'Vendas (R$)', 'day_name': 'Dia'},
-                color='total_sales',
-                color_continuous_scale='Viridis'
-            )
-            fig_daily.update_layout(template='plotly_dark')
-            st.plotly_chart(fig_daily, use_container_width=True)
-        
-        with col2:
-            # Vendas Mensais
-            fig_monthly = px.line(
-                advanced_metrics['monthly_data'],
-                x='month',
-                y=['total_sales', 'transactions'],
-                title='Evolução Mensal',
-                labels={'value': 'Valor', 'month': 'Mês'},
-                color_discrete_sequence=['#00ff7f', '#00bfff']
-            )
-            fig_monthly.update_layout(template='plotly_dark')
-            st.plotly_chart(fig_monthly, use_container_width=True)
-    
-    with tab2:
-        # Gráfico temporal principal
-        st.plotly_chart(create_sales_chart(temporal_data, 7), use_container_width=True)
-        
-        # Distribuição de vendas
-        df_temp = pd.DataFrame(temporal_data)
-        fig_dist = px.histogram(
-            df_temp,
-            x='total_sales',
-            nbins=30,
-            title='Distribuição das Vendas Diárias',
-            labels={'total_sales': 'Valor de Vendas'},
-            color_discrete_sequence=['#4287f5']
+def create_product_distribution_chart(df: pd.DataFrame) -> go.Figure:
+    """Cria gráfico de distribuição de produtos"""
+    try:
+        fig = make_subplots(
+            rows=1, cols=2,
+            subplot_titles=('Distribuição por Receita', 'Distribuição por Quantidade')
         )
-        fig_dist.update_layout(template='plotly_dark')
-        st.plotly_chart(fig_dist, use_container_width=True)
-    
-    with tab3:
-        col1, col2 = st.columns(2)
         
-        with col1:
-            st.markdown("### 🎯 Insights Principais")
-            st.info(f"""
-            - **Melhor Dia**: {advanced_metrics['trends']['best_day']}
-            - **Melhor Mês**: {advanced_metrics['trends']['best_month']}
-            - **Frequência Média**: {advanced_metrics['trends']['customer_frequency']:.2f} compras/cliente
-            - **Ticket Médio**: {format_currency(advanced_metrics['trends']['avg_ticket_trend'])}
-            """)
+        # Distribuição por receita
+        fig.add_trace(
+            go.Histogram(
+                x=df['total_revenue'],
+                name='Receita',
+                nbinsx=30,
+                marker_color='#4CAF50'
+            ),
+            row=1, col=1
+        )
         
-        with col2:
-            st.markdown("### 📈 Oportunidades")
-            st.success(f"""
-            - **Taxa de Conversão**: {(sales_data['total_transactions']/sales_data['total_customers']):.1f} compras/cliente
-            - **Potencial de Crescimento**: {format_currency(advanced_metrics['trends']['avg_ticket_trend'] * 1.2)}
-            - **Meta Sugerida**: +20% sobre média atual
-            """)
+        # Distribuição por quantidade
+        fig.add_trace(
+            go.Histogram(
+                x=df['total_quantity'],
+                name='Quantidade',
+                nbinsx=30,
+                marker_color='#2196F3'
+            ),
+            row=1, col=2
+        )
+        
+        fig.update_layout(
+            template='plotly_dark',
+            showlegend=False,
+            title_text="Distribuição de Produtos",
+            height=400
+        )
+        
+        return fig
+    except Exception as e:
+        logger.error(f"Erro ao criar gráfico de distribuição: {str(e)}")
+        return None
+
+def create_category_analysis(df: pd.DataFrame) -> go.Figure:
+    """Cria gráfico de análise por categorias"""
+    try:
+        category_data = df.groupby('category').agg({
+            'total_revenue': 'sum',
+            'total_quantity': 'sum'
+        }).reset_index()
+        
+        fig = go.Figure()
+        
+        fig.add_trace(go.Bar(
+            x=category_data['category'],
+            y=category_data['total_revenue'],
+            name='Receita',
+            marker_color='#4CAF50'
+        ))
+        
+        fig.add_trace(go.Scatter(
+            x=category_data['category'],
+            y=category_data['total_quantity'],
+            name='Quantidade',
+            yaxis='y2',
+            marker_color='#2196F3'
+        ))
+        
+        fig.update_layout(
+            template='plotly_dark',
+            title='Análise por Categoria',
+            yaxis=dict(title='Receita Total (R$)'),
+            yaxis2=dict(title='Quantidade', overlaying='y', side='right'),
+            height=500,
+            showlegend=True
+        )
+        
+        return fig
+    except Exception as e:
+        logger.error(f"Erro ao criar análise por categoria: {str(e)}")
+        return None
+
+def create_price_analysis(df: pd.DataFrame) -> go.Figure:
+    """Cria gráfico de análise de preços"""
+    try:
+        price_data = df.groupby('price_category').agg({
+            'total_revenue': 'sum',
+            'total_quantity': 'sum'
+        }).reset_index()
+        
+        price_data['avg_price'] = price_data['total_revenue'] / price_data['total_quantity']
+        
+        fig = px.bar(
+            price_data,
+            x='price_category',
+            y='total_revenue',
+            color='avg_price',
+            title='Análise por Faixa de Preço',
+            labels={
+                'price_category': 'Faixa de Preço',
+                'total_revenue': 'Receita Total (R$)',
+                'avg_price': 'Preço Médio (R$)'
+            },
+            color_continuous_scale='Viridis'
+        )
+        
+        fig.update_layout(template='plotly_dark', height=400)
+        return fig
+    except Exception as e:
+        logger.error(f"Erro ao criar análise de preços: {str(e)}")
+        return None
 
 def main():
-    st.title("📊 Análise de Vendas")
-    st.markdown("Dashboard completo de métricas e insights de vendas")
+    # Título e descrição
+    st.title("📦 Análise de Produtos")
+    st.markdown("""
+        Dashboard completo para análise de performance dos produtos, incluindo métricas 
+        de vendas, distribuições e tendências por categoria.
+    """)
     
-    # Sidebar
+    # Carregar dados
+    with st.spinner("Carregando dados dos produtos..."):
+        products_data = get_product_data()
+        
+        if not products_data:
+            st.error("Não foi possível carregar os dados dos produtos.")
+            return
+        
+        df = pd.DataFrame(products_data)
+        metrics = calculate_product_metrics(df)
+    
+    # Sidebar com filtros
     with st.sidebar:
         st.header("Filtros")
         
-        start_date = st.date_input(
-            "Data Inicial",
-            value=DATE_MIN.date(),
-            min_value=DATE_MIN.date(),
-            max_value=DATE_MAX.date()
+        # Filtro de categorias
+        categories = sorted(df['category'].unique())
+        selected_categories = st.multiselect(
+            "Categorias",
+            options=categories,
+            default=categories[:3],
+            help="Selecione as categorias de produtos"
         )
         
-        end_date = st.date_input(
-            "Data Final",
-            value=DATE_MAX.date(),
-            min_value=DATE_MIN.date(),
-            max_value=DATE_MAX.date()
+        # Filtro de faixa de preço
+        price_ranges = sorted(df['price_category'].unique())
+        selected_price_ranges = st.multiselect(
+            "Faixas de Preço",
+            options=price_ranges,
+            default=price_ranges,
+            help="Selecione as faixas de preço"
         )
         
-        window = st.slider(
-            "Janela da Média Móvel (dias)",
-            min_value=3,
-            max_value=30,
-            value=7
-        )
-        
-        if st.button("🔄 Atualizar Dados"):
-            st.cache_data.clear()
+        # Limpar filtros
+        if st.button("🔄 Limpar Filtros"):
+            selected_categories = categories
+            selected_price_ranges = price_ranges
     
-    # Validação de datas
-    if start_date > end_date:
-        st.error("A data inicial deve ser anterior à data final!")
-        return
+    # Aplicar filtros
+    mask = df['category'].isin(selected_categories) & df['price_category'].isin(selected_price_ranges)
+    df_filtered = df[mask]
     
-    # Carregar e processar dados
-    with st.spinner("Carregando dados..."):
-        sales_data = get_sales_data(
-            datetime.combine(start_date, datetime.min.time()),
-            datetime.combine(end_date, datetime.max.time())
+    # Métricas principais
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric(
+            "Receita Total",
+            format_currency(metrics["total_revenue"]),
+            help="Receita total gerada pelos produtos"
+        )
+    
+    with col2:
+        st.metric(
+            "Quantidade Vendida",
+            format_number(metrics["total_quantity"]),
+            help="Quantidade total de itens vendidos"
+        )
+    
+    with col3:
+        st.metric(
+            "Preço Médio",
+            format_currency(metrics["avg_price"]),
+            help="Preço médio por unidade"
+        )
+    
+    with col4:
+        st.metric(
+            "Produtos Únicos",
+            format_number(metrics["unique_products"]),
+            help="Número de produtos diferentes"
+        )
+    
+    # Tabs com análises
+    tab1, tab2, tab3 = st.tabs(["📊 Visão Geral", "📈 Distribuições", "💰 Preços"])
+    
+    with tab1:
+        # Top 10 produtos
+        st.subheader("Top 10 Produtos por Receita")
+        top_products = df_filtered.nlargest(10, 'total_revenue')
+        
+        fig = px.bar(
+            top_products,
+            x='description',
+            y='total_revenue',
+            color='category',
+            title='Produtos Mais Vendidos',
+            labels={
+                'description': 'Produto',
+                'total_revenue': 'Receita Total (R$)',
+                'category': 'Categoria'
+            }
+        )
+        fig.update_layout(template='plotly_dark')
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Análise por categoria
+        st.plotly_chart(
+            create_category_analysis(df_filtered),
+            use_container_width=True
+        )
+    
+    with tab2:
+        # Gráficos de distribuição
+        st.plotly_chart(
+            create_product_distribution_chart(df_filtered),
+            use_container_width=True
+        )
+    
+    with tab3:
+        # Análise de preços
+        st.plotly_chart(
+            create_price_analysis(df_filtered),
+            use_container_width=True
+        )
+    
+    # Detalhes dos produtos
+    with st.expander("📋 Dados Detalhados"):
+        st.dataframe(
+            df_filtered.sort_values('total_revenue', ascending=False),
+            use_container_width=True
         )
         
-        temporal_data = get_temporal_data(
-            datetime.combine(start_date, datetime.min.time()),
-            datetime.combine(end_date, datetime.max.time()),
-            window
+        # Opção de download
+        csv = df_filtered.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            "📥 Download CSV",
+            csv,
+            "produtos_analise.csv",
+            "text/csv",
+            key='download-csv'
         )
-        
-        if sales_data and temporal_data is not None:
-            advanced_metrics = calculate_metrics(temporal_data)
-            create_sales_dashboard(sales_data, temporal_data, advanced_metrics)
-        else:
-            st.error("Erro ao carregar dados. Verifique a conexão com a API.")
 
 if __name__ == "__main__":
     main()

@@ -43,7 +43,7 @@ venv.bak/
 Thumbs.db
 *.stackdump
 
-# Arquivos específicos do projeto
+# Arquivos especï¿½ficos do projeto
 *.csv
 *.xlsx
 *.joblib

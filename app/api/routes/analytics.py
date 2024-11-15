@@ -15,33 +15,30 @@ router = APIRouter(prefix="/analytics")
 
 @router.get("/sales", response_model=SalesMetrics)
 async def get_sales_analysis(
-    start_date: date = Query(..., description="Data inicial da análise"),
-    end_date: date = Query(..., description="Data final da análise"),
+    start_date: date = Query(...),
+    end_date: date = Query(...),
     db: Session = Depends(get_db)
 ):
-    """Retorna métricas de vendas para o período especificado"""
     try:
-        # Validação de datas
         if start_date > end_date:
             raise ValidationError(
                 message="Data inicial deve ser anterior à data final",
                 details={"start_date": str(start_date), "end_date": str(end_date)}
             )
 
-        logger.debug(f"Recebida requisição de análise de vendas: {start_date} até {end_date}")
-        result = get_sales_metrics(db, start_date, end_date)
+        supabase_url = st.secrets["supabase"]["url"]
+        supabase_key = st.secrets["supabase"]["key"]
         
-        if not result:
-            raise NotFoundError(
-                message="Nenhum dado encontrado para o período especificado",
-                details={"start_date": str(start_date), "end_date": str(end_date)}
-            )
+        # Criar cliente Supabase
+        supabase = create_client(supabase_url, supabase_key)
+        
+        result = await supabase.rpc('get_sales_metrics', {
+            'start_date': start_date.isoformat(),
+            'end_date': end_date.isoformat()
+        }).execute()
 
-        logger.debug(f"Resultado da análise: {result}")
-        return result
-        
-    except (ValidationError, NotFoundError) as e:
-        raise e
+        return result.data
+
     except Exception as e:
         logger.error(f"Erro ao processar análise de vendas: {str(e)}")
         raise DatabaseError(message="Erro ao processar análise de vendas", details={"error": str(e)})
@@ -55,96 +52,33 @@ async def get_sales_temporal(
 ):
     """Retorna análise temporal de vendas com médias móveis e tendências"""
     try:
-        if start_date > end_date:
-            raise ValidationError(
-                message="Data inicial deve ser anterior à data final",
-                details={"start_date": str(start_date), "end_date": str(end_date)}
-            )
-
-        query = text("""
-            WITH daily_sales AS (
-                SELECT 
-                    DATE("DataFatura") as sale_date,
-                    SUM("ValorTotalFatura") as daily_total,
-                    COUNT(DISTINCT "NumeroFatura") as transaction_count,
-                    COUNT(DISTINCT "IDCliente") as unique_customers
-                FROM transactions_main
-                WHERE DATE("DataFatura") BETWEEN :start_date AND :end_date
-                GROUP BY DATE("DataFatura")
-            ),
-            moving_averages AS (
-                SELECT 
-                    sale_date,
-                    daily_total,
-                    transaction_count,
-                    unique_customers,
-                    AVG(daily_total) OVER (
-                        ORDER BY sale_date 
-                        ROWS BETWEEN :window PRECEDING AND CURRENT ROW
-                    ) as moving_avg_sales
-                FROM daily_sales
-            )
-            SELECT 
-                sale_date as date,
-                ROUND(daily_total::numeric, 2) as total_sales,
-                transaction_count as transactions,
-                unique_customers,
-                ROUND(moving_avg_sales::numeric, 2) as moving_avg_sales,
-                CASE 
-                    WHEN daily_total > moving_avg_sales THEN 'up'
-                    WHEN daily_total < moving_avg_sales THEN 'down'
-                    ELSE 'stable'
-                END as trend,
-                ROUND(
-                    COALESCE(
-                        100 * (daily_total - LAG(daily_total) OVER (ORDER BY sale_date)) / 
-                        NULLIF(LAG(daily_total) OVER (ORDER BY sale_date), 0),
-                        0
-                    )::numeric,
-                    2
-                ) as growth_rate
-            FROM moving_averages
-            ORDER BY date
-        """)
-
-        try:
-            result = db.execute(query, {
-                "start_date": start_date,
-                "end_date": end_date,
-                "window": window
-            })
-        except Exception as e:
-            raise DatabaseError(
-                message="Erro ao executar query temporal",
-                details={"error": str(e)}
-            )
-
-        temporal_data = []
-        for row in result:
-            temporal_data.append({
-                "date": row.date.strftime("%Y-%m-%d"),
-                "total_sales": float(row.total_sales),
-                "transactions": int(row.transactions),
-                "unique_customers": int(row.unique_customers),
-                "moving_avg_sales": float(row.moving_avg_sales),
-                "trend": str(row.trend),
-                "growth_rate": float(row.growth_rate)
-            })
-
-        if not temporal_data:
+        # Criar cliente Supabase
+        supabase = create_client(
+            st.secrets["supabase"]["url"],
+            st.secrets["supabase"]["key"]
+        )
+        
+        # Chamar função do Supabase
+        result = await supabase.rpc(
+            'get_temporal_metrics',
+            {
+                'p_start_date': start_date.isoformat(),
+                'p_end_date': end_date.isoformat(),
+                'p_window': window
+            }
+        ).execute()
+        
+        if not result.data:
             raise NotFoundError(
                 message="Nenhum dado encontrado para o período especificado",
                 details={"start_date": str(start_date), "end_date": str(end_date)}
             )
 
-        return temporal_data
-
-    except (ValidationError, NotFoundError, DatabaseError) as e:
-        raise e
+        return result.data
+        
     except Exception as e:
         logger.error(f"Erro ao processar dados temporais: {str(e)}")
         raise DatabaseError(message="Erro ao processar dados temporais", details={"error": str(e)})
-
 @router.get("/products", response_model=List[ProductAnalytics])
 async def get_product_analysis(
     limit: int = Query(10, description="Número de produtos a retornar"),

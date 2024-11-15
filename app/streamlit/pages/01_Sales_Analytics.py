@@ -20,87 +20,144 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
 # Configurações da API e constantes
-API_BASE_URL = "http://localhost:8000/api/v1/analytics"
+SUPABASE_URL = st.secrets["supabase"]["url"]  
+SUPABASE_KEY = st.secrets["supabase"]["key"] 
+API_BASE_URL = f"{SUPABASE_URL}/analytics-api"
+
+# Configurações de headers padrão
+DEFAULT_HEADERS = {
+    "Authorization": f"Bearer {SUPABASE_KEY}",
+    "Content-Type": "application/json"
+}
 DEFAULT_YEAR = 2011
 DATE_MIN = datetime(DEFAULT_YEAR, 1, 1)
 DATE_MAX = datetime(DEFAULT_YEAR, 12, 31)
+
 
 @st.cache_data(ttl=3600)
 def get_sales_data(start_date, end_date):
     """Busca dados de vendas"""
     try:
+        logger.info(f"Buscando dados de vendas para o período: {start_date} até {end_date}")
+
+        url = f"{API_BASE_URL}/sales"
+        params = {
+            "start_date": start_date.strftime("%Y-%m-%d"),
+            "end_date": end_date.strftime("%Y-%m-%d")
+        }
+
         response = requests.get(
-            f"{API_BASE_URL}/sales",
-            params={
-                "start_date": start_date.strftime("%Y-%m-%d"),
-                "end_date": end_date.strftime("%Y-%m-%d")
-            },
+            url=url,
+            headers=DEFAULT_HEADERS,
+            params=params,
             timeout=10
         )
-        
+
         if response.status_code == 200:
-            return response.json()
+            data = response.json()
+            logger.info("Dados de vendas recuperados com sucesso")
+            return data
         else:
-            st.error(f"Erro na API (Status {response.status_code})")
+            logger.error(f"Erro na API (Status {response.status_code}): {response.text}")
+            st.error(f"Erro ao carregar dados de vendas (Status {response.status_code})")
             return None
-            
+
     except Exception as e:
-        st.error(f"Erro ao conectar com a API: {str(e)}")
+        logger.error(f"Erro ao conectar com a API de vendas: {str(e)}")
+        st.error("Erro ao carregar dados. Verifique a conexão com a API.")
         return None
+
 
 @st.cache_data(ttl=3600)
 def get_temporal_data(start_date, end_date, window=7):
-    """Busca dados temporais"""
+    """Busca dados temporais de vendas"""
     try:
+        logger.info(f"Buscando dados temporais para o período: {start_date} até {end_date}, janela: {window}")
+
+        url = f"{API_BASE_URL}/sales/temporal"
+        params = {
+            "start_date": start_date.strftime("%Y-%m-%d"),
+            "end_date": end_date.strftime("%Y-%m-%d"),
+            "window": window
+        }
+
         response = requests.get(
-            f"{API_BASE_URL}/sales/temporal",
-            params={
-                "start_date": start_date.strftime("%Y-%m-%d"),
-                "end_date": end_date.strftime("%Y-%m-%d"),
-                "window": window
-            },
+            url=url,
+            headers=DEFAULT_HEADERS,
+            params=params,
             timeout=10
         )
-        
+
         if response.status_code == 200:
-            return response.json()
+            data = response.json()
+            logger.info("Dados temporais recuperados com sucesso")
+            return data
         else:
-            st.error(f"Erro na API temporal (Status {response.status_code})")
+            logger.error(f"Erro na API temporal (Status {response.status_code}): {response.text}")
+            st.error(f"Erro ao carregar dados temporais (Status {response.status_code})")
             return None
-            
+
     except Exception as e:
-        st.error(f"Erro ao conectar com a API temporal: {str(e)}")
+        logger.error(f"Erro ao conectar com a API temporal: {str(e)}")
+        st.error("Erro ao carregar dados temporais. Verifique a conexão com a API.")
         return None
-        
+
+
 # Funções auxiliares
 def format_currency(value):
     return f"R$ {value:,.2f}"
+
+
+def test_api_connection():
+    """Testa a conexão com a API"""
+    st.write("Testando conexão com a API...")
+
+    # Teste 1: get_sales_data
+    test_start = DATE_MIN
+    test_end = test_start + timedelta(days=30)
+
+    st.write("### Teste 1: Dados de Vendas")
+    sales_result = get_sales_data(test_start, test_end)
+    if sales_result:
+        st.write("✅ Conexão com dados de vendas OK")
+        st.write("Exemplo de dados:", sales_result)
+    else:
+        st.write("❌ Erro na conexão com dados de vendas")
+
+    # Teste 2: get_temporal_data
+    st.write("### Teste 2: Dados Temporais")
+    temporal_result = get_temporal_data(test_start, test_end)
+    if temporal_result:
+        st.write("✅ Conexão com dados temporais OK")
+        st.write("Exemplo de dados:", temporal_result)
+    else:
+        st.write("❌ Erro na conexão com dados temporais")
+
 
 def calculate_metrics(temporal_data):
     """Calcula métricas adicionais"""
     if temporal_data is None:
         return None
-    
+
     df = pd.DataFrame(temporal_data)
     df['date'] = pd.to_datetime(df['date'])
     df['month'] = df['date'].dt.month
     df['day_of_week'] = df['date'].dt.dayofweek
-    
+
     monthly_data = df.groupby('month').agg({
         'total_sales': 'sum',
         'transactions': 'sum',
         'unique_customers': 'mean'
     }).reset_index()
-    
+
     daily_data = df.groupby('day_of_week').agg({
         'total_sales': 'mean',
         'transactions': 'mean'
     }).reset_index()
-    
+
     daily_data['day_name'] = daily_data['day_of_week'].apply(lambda x: calendar.day_name[x])
-    
+
     return {
         'monthly_data': monthly_data,
         'daily_data': daily_data,
@@ -112,12 +169,13 @@ def calculate_metrics(temporal_data):
         }
     }
 
+
 def create_sales_chart(temporal_data, window):
     """Cria gráfico de vendas"""
     fig = go.Figure()
-    
+
     df = pd.DataFrame(temporal_data)
-    
+
     # Vendas diárias
     fig.add_trace(go.Scatter(
         x=df['date'],
@@ -126,7 +184,7 @@ def create_sales_chart(temporal_data, window):
         mode='lines',
         line=dict(color='#4287f5', width=2)
     ))
-    
+
     # Média móvel
     fig.add_trace(go.Scatter(
         x=df['date'],
@@ -135,7 +193,7 @@ def create_sales_chart(temporal_data, window):
         mode='lines',
         line=dict(color='#ff6b3d', width=2, dash='dash')
     ))
-    
+
     fig.update_layout(
         title='Evolução de Vendas',
         template='plotly_dark',
@@ -143,16 +201,17 @@ def create_sales_chart(temporal_data, window):
         yaxis_title='Vendas (R$)',
         hovermode='x unified'
     )
-    
+
     return fig
+
 
 def create_sales_dashboard(sales_data, temporal_data, advanced_metrics):
     """Cria dashboard completo de vendas"""
-    
+
     # KPIs Principais
     st.markdown("### Métricas Principais")
     col1, col2, col3, col4 = st.columns(4)
-    
+
     with col1:
         st.metric("Total de Vendas", format_currency(sales_data['total_sales']))
     with col2:
@@ -161,13 +220,13 @@ def create_sales_dashboard(sales_data, temporal_data, advanced_metrics):
         st.metric("Clientes Únicos", f"{sales_data['total_customers']:,}")
     with col4:
         st.metric("Total Transações", f"{sales_data['total_transactions']:,}")
-    
+
     # Gráficos em Tabs
     tab1, tab2, tab3 = st.tabs(["📈 Tendências", "📊 Análise Temporal", "🎯 Insights"])
-    
+
     with tab1:
         col1, col2 = st.columns(2)
-        
+
         with col1:
             # Vendas por Dia da Semana
             fig_daily = px.bar(
@@ -181,7 +240,7 @@ def create_sales_dashboard(sales_data, temporal_data, advanced_metrics):
             )
             fig_daily.update_layout(template='plotly_dark')
             st.plotly_chart(fig_daily, use_container_width=True)
-        
+
         with col2:
             # Vendas Mensais
             fig_monthly = px.line(
@@ -194,11 +253,11 @@ def create_sales_dashboard(sales_data, temporal_data, advanced_metrics):
             )
             fig_monthly.update_layout(template='plotly_dark')
             st.plotly_chart(fig_monthly, use_container_width=True)
-    
+
     with tab2:
         # Gráfico temporal principal
         st.plotly_chart(create_sales_chart(temporal_data, 7), use_container_width=True)
-        
+
         # Distribuição de vendas
         df_temp = pd.DataFrame(temporal_data)
         fig_dist = px.histogram(
@@ -211,10 +270,10 @@ def create_sales_dashboard(sales_data, temporal_data, advanced_metrics):
         )
         fig_dist.update_layout(template='plotly_dark')
         st.plotly_chart(fig_dist, use_container_width=True)
-    
+
     with tab3:
         col1, col2 = st.columns(2)
-        
+
         with col1:
             st.markdown("### 🎯 Insights Principais")
             st.info(f"""
@@ -223,7 +282,7 @@ def create_sales_dashboard(sales_data, temporal_data, advanced_metrics):
             - **Frequência Média**: {advanced_metrics['trends']['customer_frequency']:.2f} compras/cliente
             - **Ticket Médio**: {format_currency(advanced_metrics['trends']['avg_ticket_trend'])}
             """)
-        
+
         with col2:
             st.markdown("### 📈 Oportunidades")
             st.success(f"""
@@ -232,44 +291,51 @@ def create_sales_dashboard(sales_data, temporal_data, advanced_metrics):
             - **Meta Sugerida**: +20% sobre média atual
             """)
 
+
 def main():
     st.title("📊 Análise de Vendas")
+
+    # Botão de teste de API
+    if st.button("🔍 Testar Conexão com API"):
+        test_api_connection()
+        return
+
     st.markdown("Dashboard completo de métricas e insights de vendas")
-    
+
     # Sidebar
     with st.sidebar:
         st.header("Filtros")
-        
+
         start_date = st.date_input(
             "Data Inicial",
             value=DATE_MIN.date(),
             min_value=DATE_MIN.date(),
             max_value=DATE_MAX.date()
         )
-        
+
         end_date = st.date_input(
             "Data Final",
             value=DATE_MAX.date(),
             min_value=DATE_MIN.date(),
             max_value=DATE_MAX.date()
         )
-        
+
         window = st.slider(
             "Janela da Média Móvel (dias)",
             min_value=3,
             max_value=30,
             value=7
         )
-        
+
         if st.button("🔄 Atualizar Dados"):
             st.cache_data.clear()
-            
+
         # Adicionar separador
         st.markdown("---")
-        
+
         # Seção de Importar/Exportar
         st.subheader("📈 Importar/Exportar")
-        
+
         # Upload de CSV
         uploaded_file = st.file_uploader(
             "Importar CSV",
@@ -281,10 +347,10 @@ def main():
             try:
                 df_upload = pd.read_csv(uploaded_file)
                 required_cols = ["DataFatura", "ValorTotalFatura", "IDCliente"]
-                
+
                 if all(col in df_upload.columns for col in required_cols):
                     df_upload['DataFatura'] = pd.to_datetime(df_upload['DataFatura'])
-                    
+
                     with st.expander("👀 Preview dos Dados"):
                         st.dataframe(df_upload.head())
                         col1, col2 = st.columns(2)
@@ -297,74 +363,30 @@ def main():
             except Exception as e:
                 st.error(f"❌ Erro ao processar arquivo: {str(e)}")
 
-        # Download de dados
-        if 'temporal_data' in locals() and temporal_data is not None:
-            st.markdown("### 📊 Exportar")
-            
-            export_type = st.selectbox(
-                "Tipo de Exportação",
-                options=[
-                    "Dados Completos",
-                    "Resumo Diário",
-                    "Resumo Mensal"
-                ]
-            )
-            
-            df_export = pd.DataFrame(temporal_data)
-            
-            if export_type == "Dados Completos":
-                csv_data = df_export.to_csv(index=False)
-                filename = f"vendas_completo_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.csv"
-            
-            elif export_type == "Resumo Diário":
-                daily_summary = df_export.groupby('date').agg({
-                    'total_sales': 'sum',
-                    'transactions': 'sum',
-                    'unique_customers': 'sum'
-                }).reset_index()
-                csv_data = daily_summary.to_csv(index=False)
-                filename = f"vendas_diario_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.csv"
-            
-            else:  # Resumo Mensal
-                df_export['month'] = pd.to_datetime(df_export['date']).dt.to_period('M')
-                monthly_summary = df_export.groupby('month').agg({
-                    'total_sales': 'sum',
-                    'transactions': 'sum',
-                    'unique_customers': 'mean'
-                }).reset_index()
-                csv_data = monthly_summary.to_csv(index=False)
-                filename = f"vendas_mensal_{start_date.strftime('%Y%m')}_{end_date.strftime('%Y%m')}.csv"
-            
-            st.download_button(
-                label="📥 Download CSV",
-                data=csv_data,
-                file_name=filename,
-                mime="text/csv"
-            )
-    
     # Validação de datas
     if start_date > end_date:
         st.error("A data inicial deve ser anterior à data final!")
         return
-    
+
     # Carregar e processar dados
     with st.spinner("Carregando dados..."):
         sales_data = get_sales_data(
             datetime.combine(start_date, datetime.min.time()),
             datetime.combine(end_date, datetime.max.time())
         )
-        
+
         temporal_data = get_temporal_data(
             datetime.combine(start_date, datetime.min.time()),
             datetime.combine(end_date, datetime.max.time()),
             window
         )
-        
+
         if sales_data and temporal_data is not None:
             advanced_metrics = calculate_metrics(temporal_data)
             create_sales_dashboard(sales_data, temporal_data, advanced_metrics)
         else:
             st.error("Erro ao carregar dados. Verifique a conexão com a API.")
+
 
 if __name__ == "__main__":
     main()

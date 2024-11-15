@@ -28,3 +28,13 @@ arquivos_temporarios.py
 # Notebooks checkpoints
 .ipynb_checkpoints/
 
+venv/
+env/
+
+# Arquivos de dados grandes
+data/raw/transacoes_final.csv
+
+# Arquivos de IDE
+.vscode/
+.idea/
+*.swp

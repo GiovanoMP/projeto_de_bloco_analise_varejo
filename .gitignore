@@ -1,54 +1,30 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
 
-# Jupyter Notebook
-.ipynb_checkpoints
-*/.ipynb_checkpoints/*
-
-# Environments
+# Arquivos de configuração
 .env
-.venv
-env/
+.streamlit/secrets.toml
+supabase/config.toml
+
+# Arquivos temporários
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Ambiente virtual
+.venv/
 venv/
-ENV/
-env.bak/
-venv.bak/
+env/
 
-# IDE
-.idea/
+# Arquivos de IDE
 .vscode/
-*.swp
-*.swo
+.idea/
 
-# Sistema
-.DS_Store
-Thumbs.db
-*.stackdump
+# Arquivos de teste e desenvolvimento
+teste_*.py
+*_test.py
+arquivos_temporarios.py
 
-# Arquivos espec�ficos do projeto
-*.csv
-*.xlsx
-*.joblib
-*.pkl
+# Notebooks checkpoints
+.ipynb_checkpoints/
 
-# Logs
-*.log
-logs/

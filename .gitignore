@@ -8,6 +8,7 @@ supabase/config.toml
 venv/
 env/
 virtualenv/
+pyvenv.cfg
 
 # Cache e arquivos temporários
 __pycache__/
@@ -22,7 +23,16 @@ _pycache_/
 htmlcov/
 
 # IDEs e editores
+# VS Code - completo
 .vscode/
+.vscode/*
+*.code-workspace
+.history/
+.history
+.ionide
+.vs/
+
+# PyCharm e outros IDEs
 .idea/
 *.swp
 *.swo
@@ -31,8 +41,16 @@ htmlcov/
 *.sublime*
 .settings/
 
-# Git temporários
+# Git temporários e rewrite
 .git-rewrite/
+.git/*
+*.orig
+*.rej
+*.conflict
+.git/FETCH_HEAD
+.git/ORIG_HEAD
+.git/index.lock
+.git/packed-refs
 
 # Arquivos específicos de dados (grandes)
 data/processed/transacoes_final.csv
@@ -57,3 +75,5 @@ dist/
 # Sistema operacional
 .DS_Store
 Thumbs.db
+.directory
+desktop.ini

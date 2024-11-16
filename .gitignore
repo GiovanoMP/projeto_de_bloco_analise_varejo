@@ -1,40 +1,59 @@
-
-# Arquivos de configuração
+# Arquivos de configuração e secrets
 .env
 .streamlit/secrets.toml
 supabase/config.toml
 
-# Arquivos temporários
+# Ambientes virtuais
+.venv/
+venv/
+env/
+virtualenv/
+
+# Cache e arquivos temporários
 __pycache__/
+_pycache_/
 *.pyc
+*.pyo
+*.pyd
+.Python
+*.so
 .pytest_cache/
 .coverage
 htmlcov/
 
-# Ambiente virtual
-.venv/
-venv/
-env/
-
-# Arquivos de IDE
-.vscode/
-.idea/
-
-# Arquivos de teste e desenvolvimento
-teste_*.py
-*_test.py
-arquivos_temporarios.py
-
-# Notebooks checkpoints
-.ipynb_checkpoints/
-
-venv/
-env/
-
-# Arquivos de dados grandes
-data/raw/transacoes_final.csv
-
-# Arquivos de IDE
+# IDEs e editores
 .vscode/
 .idea/
 *.swp
+*.swo
+*.swn
+*.bak
+*.sublime*
+.settings/
+
+# Git temporários
+.git-rewrite/
+
+# Arquivos específicos de dados (grandes)
+data/processed/transacoes_final.csv
+data/raw/online_retail.csv
+data/raw/Online_Retail.xlsx
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb_checkpoints/
+
+# Logs e backups
+*.log
+*.bak
+*.backup
+*~
+
+# Arquivos de build
+build/
+dist/
+*.egg-info/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db

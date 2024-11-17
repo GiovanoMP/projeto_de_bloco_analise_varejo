@@ -1,79 +1,33 @@
-# Arquivos de configuração e secrets
-.env
-.streamlit/secrets.toml
-supabase/config.toml
+# Data files
+data/raw/*
+data/processed/*
 
-# Ambientes virtuais
-.venv/
-venv/
-env/
-virtualenv/
-pyvenv.cfg
-
-# Cache e arquivos temporários
+# Python cache
 __pycache__/
-_pycache_/
 *.pyc
 *.pyo
 *.pyd
 .Python
-*.so
-.pytest_cache/
-.coverage
-htmlcov/
+*.py[cod]
+*$py.class
 
-# IDEs e editores
-# VS Code - completo
+# VS Code
 .vscode/
-.vscode/*
 *.code-workspace
 .history/
-.history
-.ionide
-.vs/
 
-# PyCharm e outros IDEs
-.idea/
-*.swp
-*.swo
-*.swn
-*.bak
-*.sublime*
-.settings/
-
-# Git temporários e rewrite
+# Git
 .git-rewrite/
-.git/*
-*.orig
-*.rej
-*.conflict
-.git/FETCH_HEAD
-.git/ORIG_HEAD
-.git/index.lock
-.git/packed-refs
 
-# Arquivos específicos de dados (grandes)
-data/processed/transacoes_final.csv
-data/raw/online_retail.csv
-data/raw/Online_Retail.xlsx
+# Environment
+.env
+.venv/
+venv/
+ENV/
 
-# Jupyter Notebooks
-.ipynb_checkpoints/
-*.ipynb_checkpoints/
+# Streamlit
+.streamlit/
 
-# Logs e backups
-*.log
-*.bak
-*.backup
-*~
-
-# Arquivos de build
-build/
-dist/
-*.egg-info/
-
-# Sistema operacional
+# System files
 .DS_Store
 Thumbs.db
-.directory
-desktop.ini

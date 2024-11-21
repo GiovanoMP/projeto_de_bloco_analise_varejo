@@ -3,12 +3,12 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime, date
 import requests
+from ..utils.config import API_BASE_URL #Exportação de dados API deployada
 
 # Configuração da página
 st.set_page_config(page_title="Análise de Produtos", layout="wide")
 
-# Constantes
-API_BASE_URL = "http://localhost:8000/api/v1"
+
 
 # Funções para buscar dados da API
 @st.cache_data(ttl=3600)

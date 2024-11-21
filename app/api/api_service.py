@@ -1,10 +1,11 @@
-# api_service.py
+# app/api/api_service.py
 import requests
 from datetime import date
 from typing import Dict, List, Any
+from ..frontend.utils.config import API_BASE_URL
 
 class RetailAPI:
-    def __init__(self, base_url: str = "http://localhost:8000"):
+    def __init__(self, base_url: str = API_BASE_URL):
         self.base_url = base_url
 
     def get_summary(self, data_inicio: date = date(2011, 1, 4), 

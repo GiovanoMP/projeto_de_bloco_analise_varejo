@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 from datetime import datetime, date
 import requests
 from datetime import timedelta
+from ..utils.config import API_BASE_URL #Exportação de dados API deployada
 
 # Configuração da página
 st.set_page_config(page_title="Análise de Vendas", layout="wide")
@@ -19,8 +20,7 @@ if 'category_data' not in st.session_state:
 if 'country_data' not in st.session_state:
     st.session_state['country_data'] = None
 
-# Constantes
-API_BASE_URL = "http://localhost:8000/api/v1"
+
 
 # Funções para buscar dados da API com cache
 @st.cache_data(ttl=3600)  # Cache por 1 hora

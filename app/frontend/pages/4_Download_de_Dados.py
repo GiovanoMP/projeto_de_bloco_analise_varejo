@@ -2,12 +2,12 @@ import streamlit as st
 import pandas as pd
 import requests
 from datetime import date
+from ..utils.config import API_BASE_URL #Exportação de dados API deployada
 
 # Configuração da página
 st.set_page_config(page_title="Download de Dados", layout="wide")
 
-# Constantes
-API_BASE_URL = "http://localhost:8000/api/v1"
+
 
 # Dicionário com descrição dos campos
 FIELD_DESCRIPTIONS = {

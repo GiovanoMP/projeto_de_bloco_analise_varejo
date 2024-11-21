@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 from datetime import datetime, date
 import requests
 from datetime import timedelta
-from ..utils.config import API_BASE_URL #Exportação de dados API deployada
+from app.frontend.utils.config import API_BASE_URL #Exportação de dados API deployada
 
 # Configuração da página
 st.set_page_config(page_title="Análise de Vendas", layout="wide")

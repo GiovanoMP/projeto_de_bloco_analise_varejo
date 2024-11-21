@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import requests
 from datetime import date
-from ..utils.config import API_BASE_URL #Exportação de dados API deployada
+from app.frontend.utils.config import API_BASE_URL #Exportação de dados API deployada
 
 # Configuração da página
 st.set_page_config(page_title="Download de Dados", layout="wide")

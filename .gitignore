@@ -77,3 +77,7 @@ htmlcov/
 
 # Git specific
 .git-rewrite
+
+# Páginas em desenvolvimento com IA
+app/frontend/pages/5_Análise_de_Sentimento.py
+app/frontend/pages/6_Insights_com_IA.py

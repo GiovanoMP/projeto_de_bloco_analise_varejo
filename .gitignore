@@ -1,33 +1,79 @@
-# Data files
-data/raw/*
-data/processed/*
-
-# Python cache
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-*.py[cod]
-*$py.class
-
-# VS Code
-.vscode/
-*.code-workspace
-.history/
-
-# Git
-.git-rewrite/
-
-# Environment
+# Environment and secrets
 .env
+.streamlit/
+*.toml
 .venv/
 venv/
 ENV/
 
-# Streamlit
-.streamlit/
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# System files
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+.project
+.pydevproject
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+
+# Logs and databases
+*.log
+*.sqlite
+*.db
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# Local development specific
+local_settings.py
+db.sqlite3
+*.env.local
+*.env.development.local
+*.env.test.local
+*.env.production.local
+
+# Cache directories
+.cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Data files
+*.csv
+*.xlsx
+
+# Git specific
+.git-rewrite

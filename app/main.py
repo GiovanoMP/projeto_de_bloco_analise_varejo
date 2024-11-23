@@ -1,15 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import router
-from app.api.database import engine, Base
+from sqlalchemy.orm import Session
+from fastapi import Depends
+from app.database import get_db
+from sqlalchemy import text
 
-Base.metadata.create_all(bind=engine)
-
-app = FastAPI(
-    title="API de Transações",
-    description="API para análise de dados de transações comerciais",
-    version="1.0.0"
-)
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
@@ -19,25 +16,37 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(
-    router,
-    prefix="/api/v1",
-    tags=["transactions"]
-)
+app.include_router(router, prefix="/api/v1")
 
+@app.get("/test")
+def test_connection(db: Session = Depends(get_db)):
+    try:
+        result = db.execute(text('SELECT COUNT(*) FROM transactions_sample')).scalar()
+        return {
+            "status": "success",
+            "message": "Conexão estabelecida com sucesso!",
+            "total_registros": result
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Erro na conexão: {str(e)}"
+        }
 @app.get("/")
-def read_root():
+async def root():
     return {
-        "message": "Bem-vindo à API de Transações",
-        "docs": "/docs",
-        "endpoints": {
-            "transactions": "/api/v1/transactions/",
-            "summary": "/api/v1/transactions/summary",
-            "by_category": "/api/v1/transactions/by-category",
-            "by_country": "/api/v1/transactions/by-country"
+        "mensagem": "Bem-vindo à API de Análise de Transações",
+        "versao": "1.0",
+        "endpoints_disponíveis": {
+            "Teste de Conexão": "/test",
+            "Análise de Vendas por País": "/api/v1/analise/vendas-por-pais",
+            "Análise Temporal": "/api/v1/analise/temporal",
+            "Análise de Produtos": "/api/v1/analise/produtos",
+            "Análise de Clientes": "/api/v1/analise/clientes",
+            "Análise de Faturamento": "/api/v1/analise/faturamento"
+        },
+        "documentação": {
+            "Swagger UI": "/docs",
+            "ReDoc": "/redoc"
         }
     }
-
-
-
-

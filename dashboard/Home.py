@@ -1,8 +1,6 @@
 import streamlit as st
 import plotly.express as px
 import pandas as pd
-from utils.api import APIClient
-from datetime import datetime
 
 # Configuração da página
 st.set_page_config(
@@ -15,7 +13,7 @@ st.set_page_config(
 # Título principal com logo e nome da empresa
 st.markdown("""
     <div style='text-align: center; padding: 1rem;'>
-        <h1>🏪 RetailSenso</h1>
+        <h1>🏪 RetailSense</h1>
         <h3>Varejo Inteligente e ESG</h3>
     </div>
 """, unsafe_allow_html=True)
@@ -24,7 +22,7 @@ st.markdown("---")
 
 # Mensagem de boas-vindas e descrição
 st.markdown("""
-    ### 👋 Bem-vindo à RetailSenso
+    ### 👋 Bem-vindo à RetailSense
     
     Somos especialistas em transformar dados em insights acionáveis para o varejo, 
     combinando análise avançada com práticas ESG para um crescimento sustentável.
@@ -63,7 +61,7 @@ st.markdown("---")
 st.markdown("""
 ## 🌱 Nossa Abordagem ESG
 
-A RetailSenso integra Inteligência Artificial com práticas ESG para criar um varejo mais sustentável:
+A RetailSense integra Inteligência Artificial com práticas ESG para criar um varejo mais sustentável:
 
 - **Environmental** 🌿
   - Monitoramento de indicadores ambientais
@@ -77,38 +75,6 @@ A RetailSenso integra Inteligência Artificial com práticas ESG para criar um v
   - Transparência nas operações
   - Tomada de decisão baseada em dados
 """)
-
-# Dashboard Resumido
-st.markdown("## 📊 Dashboard Resumido")
-
-try:
-    dados_resumo = carregar_dados_resumidos()
-    if dados_resumo:
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.metric(
-                "Vendas Totais",
-                f"R$ {dados_resumo['total_vendas']:,.2f}",
-                "Últimos 30 dias"
-            )
-        
-        with col2:
-            st.metric(
-                "Ticket Médio",
-                f"R$ {dados_resumo['ticket_medio']:,.2f}",
-                "Global"
-            )
-        
-        with col3:
-            st.metric(
-                "Total de Clientes",
-                f"{dados_resumo['total_clientes']:,}",
-                "Base ativa"
-            )
-
-except Exception as e:
-    st.warning("Dashboard resumido temporariamente indisponível")
 
 # Seção de Navegação Rápida
 st.markdown("## 🚀 Navegação Rápida")
@@ -128,18 +94,13 @@ with col2:
     ### Recursos Adicionais
     - [📥 Download de Dados](/Download_Dados)
     - [📚 Documentação](/Documentação)
-    - [❓ Suporte](mailto:suporte@retailsenso.com)
+    - [❓ Suporte](mailto:suporte@retailsense.com)
     """)
 
 # Footer
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center; padding: 1rem;'>
-    <p>RetailSenso © 2024 - Transformando dados em resultados sustentáveis</p>
+    <p>RetailSense © 2024 - Transformando dados em resultados sustentáveis</p>
 </div>
 """, unsafe_allow_html=True)
-
-# Botão de atualização
-if st.button("🔄 Atualizar Dashboard"):
-    st.cache_data.clear()
-    st.experimental_rerun()

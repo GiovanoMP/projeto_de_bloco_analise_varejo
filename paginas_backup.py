@@ -2,10 +2,11 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from utils.api import APIClient
-from utils.locale_config import setup_locale, format_number, format_brl  # Adicionado format_number e format_brl
+from utils.locale_config import setup_locale  # Substituímos o import locale por este
 
 # Configurar locale para formatação de números
-setup_locale()
+setup_locale()  # Substituímos o locale.setlocale por esta linha
+
 
 # Configuração da página
 st.set_page_config(
@@ -20,11 +21,11 @@ st.markdown("---")
 
 # Função para formatar valores monetários
 def formatar_moeda(valor):
-    return format_brl(valor)
+    return f"R$ {valor:,.2f}"
 
 # Função para formatar números grandes
 def formatar_numero(valor):
-    return format_number(valor)
+    return locale.format_string("%d", valor, grouping=True)
 
 # Função com cache para carregar dados
 @st.cache_data(ttl=3600)

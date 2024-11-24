@@ -1,12 +1,12 @@
-# pages/3_Análise_Clientes.py
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 from utils.api import APIClient
-import locale
+from utils.locale_config import setup_locale  # Substituímos o import locale por este
 
 # Configurar locale para formatação de números
-locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
+setup_locale()  # Substituímos o locale.setlocale por esta linha
+
 
 # Configuração da página
 st.set_page_config(

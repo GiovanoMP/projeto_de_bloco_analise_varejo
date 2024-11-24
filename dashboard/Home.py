@@ -6,21 +6,11 @@ from datetime import datetime
 
 # Configuração da página
 st.set_page_config(
-    page_title="RetailSenso | Varejo Inteligente e ESG",
+    page_title="RetailSense | Varejo Inteligente e ESG",
     page_icon="🏪",
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
-# Função para carregar dados resumidos
-@st.cache_data(ttl=3600)
-def carregar_dados_resumidos():
-    try:
-        client = APIClient()
-        return client.get_resumo_geral()
-    except Exception as e:
-        st.error(f"Erro ao carregar dados: {str(e)}")
-        return None
 
 # Título principal com logo e nome da empresa
 st.markdown("""

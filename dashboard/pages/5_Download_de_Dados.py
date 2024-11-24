@@ -1,19 +1,19 @@
-# pages/4_Downloads.py
 import streamlit as st
 import pandas as pd
 from datetime import date
 from utils.api import APIClient
-import locale
+from locale_config import setup_locale, format_number, format_brl
 
-# Configurar locale para formatação de números
-locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
-
-# Configuração da página
+# Primeiro comando Streamlit DEVE ser st.set_page_config
 st.set_page_config(
-    page_title="Download de Dados",
+    page_title="Download de Dados | Dashboard de Vendas",
+    page_icon="📥",
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Configurar locale para formatação de números
+setup_locale()
 
 # Dicionário com descrição dos campos
 FIELD_DESCRIPTIONS = {
@@ -22,6 +22,14 @@ FIELD_DESCRIPTIONS = {
     "quantidade_vendas": "Quantidade de vendas realizadas",
     "ticket_medio": "Valor médio por venda em R$"
 }
+
+# Função para formatar valores monetários
+def formatar_moeda(valor):
+    return format_brl(valor)
+
+# Função para formatar números grandes
+def formatar_numero(valor):
+    return format_number(valor)
 
 @st.cache_data(ttl=3600)
 def carregar_dados_temporais(data_inicio, data_fim):
@@ -48,19 +56,18 @@ def carregar_dados_temporais(data_inicio, data_fim):
 
 def formatar_dados(df, selected_fields):
     """
-    Formata os dados numéricos para o formato brasileiro
+    Formata os dados numéricos usando as funções de formatação padrão
     """
     df_formatted = df[selected_fields].copy()
     
     if 'total_vendas' in selected_fields:
-        df_formatted['total_vendas'] = df_formatted['total_vendas'].apply(
-            lambda x: f"R$ {x:,.2f}".replace(',', '_').replace('.', ',').replace('_', '.')
-        )
+        df_formatted['total_vendas'] = df_formatted['total_vendas'].apply(formatar_moeda)
     
     if 'ticket_medio' in selected_fields:
-        df_formatted['ticket_medio'] = df_formatted['ticket_medio'].apply(
-            lambda x: f"R$ {x:,.2f}".replace(',', '_').replace('.', ',').replace('_', '.')
-        )
+        df_formatted['ticket_medio'] = df_formatted['ticket_medio'].apply(formatar_moeda)
+        
+    if 'quantidade_vendas' in selected_fields:
+        df_formatted['quantidade_vendas'] = df_formatted['quantidade_vendas'].apply(formatar_numero)
     
     return df_formatted
 
@@ -102,61 +109,85 @@ def main():
                 format="DD/MM/YYYY"
             )
 
-    # Descrição dos campos disponíveis
-    with st.expander("ℹ️ Descrição dos Campos"):
-        for field, description in FIELD_DESCRIPTIONS.items():
-            st.markdown(f"**{field}**: {description}")
+    # Tabs para organizar a interface
+    tab1, tab2 = st.tabs(["📋 Seleção de Campos", "📊 Visualização e Download"])
 
-    # Seleção de campos
-    st.subheader("📋 Campos para Exportação")
-    
-    # Checkbox para selecionar todos
-    all_fields = list(FIELD_DESCRIPTIONS.keys())
-    selecionar_todos = st.checkbox("Selecionar todos os campos", value=True)
-    
-    if selecionar_todos:
-        selected_fields = all_fields
-    else:
-        # Criar múltiplas colunas para os checkboxes
-        num_cols = 2
-        cols = st.columns(num_cols)
-        field_chunks = [all_fields[i::num_cols] for i in range(num_cols)]
+    with tab1:
+        # Descrição dos campos disponíveis
+        with st.expander("ℹ️ Descrição dos Campos", expanded=True):
+            for field, description in FIELD_DESCRIPTIONS.items():
+                st.markdown(f"**{field}**: {description}")
+
+        # Seleção de campos
+        st.subheader("Campos para Exportação")
         
-        selected_fields = []
-        for i, col in enumerate(cols):
-            with col:
-                for field in field_chunks[i]:
-                    if st.checkbox(field, key=field):
-                        selected_fields.append(field)
-
-    # Botão de geração do CSV
-    if st.button("🔄 Carregar Dados", type="primary"):
-        if not selected_fields:
-            st.warning("Por favor, selecione pelo menos um campo para exportação.")
-            return
-
-        with st.spinner('Carregando dados...'):
-            df = carregar_dados_temporais(data_inicio, data_fim)
+        # Checkbox para selecionar todos
+        all_fields = list(FIELD_DESCRIPTIONS.keys())
+        selecionar_todos = st.checkbox("Selecionar todos os campos", value=True)
+        
+        if selecionar_todos:
+            selected_fields = all_fields
+        else:
+            # Criar múltiplas colunas para os checkboxes
+            num_cols = 2
+            cols = st.columns(num_cols)
+            field_chunks = [all_fields[i::num_cols] for i in range(num_cols)]
             
-            if df is not None and not df.empty:
-                # Mostrar prévia dos dados
-                st.subheader("📊 Prévia dos Dados")
-                df_preview = formatar_dados(df, selected_fields)
-                st.dataframe(df_preview, use_container_width=True)
+            selected_fields = []
+            for i, col in enumerate(cols):
+                with col:
+                    for field in field_chunks[i]:
+                        if st.checkbox(field, key=field):
+                            selected_fields.append(field)
+
+    with tab2:
+        # Botão de geração do CSV
+        if st.button("🔄 Carregar Dados", type="primary"):
+            if not selected_fields:
+                st.warning("Por favor, selecione pelo menos um campo para exportação.")
+                return
+
+            with st.spinner('Carregando dados...'):
+                df = carregar_dados_temporais(data_inicio, data_fim)
                 
-                # Preparar dados para download
-                df_download = df[selected_fields].copy()
-                
-                # Botão de download
-                csv = df_download.to_csv(index=False)
-                st.download_button(
-                    label="📥 Download CSV",
-                    data=csv,
-                    file_name=f"dados_vendas_{data_inicio.strftime('%Y%m%d')}_{data_fim.strftime('%Y%m%d')}.csv",
-                    mime="text/csv",
-                )
-            else:
-                st.error("Não foram encontrados dados para o período selecionado.")
+                if df is not None and not df.empty:
+                    # Mostrar prévia dos dados
+                    st.subheader("Prévia dos Dados")
+                    df_preview = formatar_dados(df, selected_fields)
+                    
+                    # Configuração das colunas para exibição
+                    column_config = {
+                        'periodo': 'Período',
+                        'total_vendas': 'Total de Vendas',
+                        'quantidade_vendas': 'Quantidade',
+                        'ticket_medio': 'Ticket Médio'
+                    }
+                    
+                    st.dataframe(
+                        df_preview,
+                        column_config=column_config,
+                        hide_index=True,
+                        use_container_width=True
+                    )
+                    
+                    # Preparar dados para download
+                    df_download = df[selected_fields].copy()
+                    
+                    # Botão de download
+                    csv = df_download.to_csv(index=False)
+                    st.download_button(
+                        label="📥 Download CSV",
+                        data=csv,
+                        file_name=f"dados_vendas_{data_inicio.strftime('%Y%m%d')}_{data_fim.strftime('%Y%m%d')}.csv",
+                        mime="text/csv",
+                    )
+                else:
+                    st.error("Não foram encontrados dados para o período selecionado.")
+
+    # Adicionar botão para recarregar os dados
+    if st.button("🔄 Recarregar Dados"):
+        st.cache_data.clear()
+        st.experimental_rerun()
 
 if __name__ == "__main__":
     main()

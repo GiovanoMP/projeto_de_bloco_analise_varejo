@@ -1,19 +1,28 @@
-# pages/1_analise_geografica.py
 import streamlit as st
 import plotly.express as px
 import pandas as pd
 from utils.api import APIClient
-from utils.helpers import format_currency, format_large_number
-from components.filters import date_range_filter
-from components.charts import create_map_chart
+from locale_config import setup_locale, format_number, format_brl
 from datetime import datetime
 
-# Configuração da página
+# Primeiro comando Streamlit DEVE ser st.set_page_config
 st.set_page_config(
     page_title="Análise Geográfica | Dashboard de Vendas",
     page_icon="🌎",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
+
+# Configurar locale para formatação de números
+setup_locale()
+
+# Função para formatar valores monetários
+def formatar_moeda(valor):
+    return format_brl(valor)
+
+# Função para formatar números grandes
+def formatar_numero(valor):
+    return format_number(valor)
 
 # Inicialização do session state
 if 'data_inicio' not in st.session_state:
@@ -25,21 +34,20 @@ if 'filtro_pais' not in st.session_state:
 
 # Cache para dados da API
 @st.cache_data(ttl=3600)  # Cache por 1 hora
-def load_vendas_por_pais():
-    client = APIClient()
+def carregar_vendas_por_pais():
     try:
+        client = APIClient()
         dados_pais = client.get_vendas_por_pais()
         if not isinstance(dados_pais, pd.DataFrame):
             dados_pais = pd.DataFrame(dados_pais['data'])
         return dados_pais
     except Exception as e:
-        st.error("Erro ao carregar dados da API")
-        st.exception(e)
+        st.error(f"Erro ao carregar dados: {str(e)}")
         return None
 
 # Cache para cálculos de KPIs
 @st.cache_data
-def calculate_kpis(dados_pais):
+def calcular_kpis(dados_pais):
     return {
         'total_vendas': dados_pais['total_vendas'].sum(),
         'total_clientes': dados_pais['numero_clientes'].sum(),
@@ -48,9 +56,10 @@ def calculate_kpis(dados_pais):
 
 # Título da página
 st.title("🌎 Análise Geográfica de Vendas")
+st.markdown("---")
 
 # Carregando dados
-dados_pais = load_vendas_por_pais()
+dados_pais = carregar_vendas_por_pais()
 
 if dados_pais is not None:
     # Filtros
@@ -76,7 +85,7 @@ if dados_pais is not None:
         st.session_state.data_fim = end_date
 
     # Cálculo de KPIs
-    kpis = calculate_kpis(dados_pais)
+    kpis = calcular_kpis(dados_pais)
 
     # KPIs principais em 3 colunas
     col1, col2, col3 = st.columns(3)
@@ -84,85 +93,102 @@ if dados_pais is not None:
     with col1:
         st.metric(
             "Total de Vendas",
-            format_currency(kpis['total_vendas']),
-            "Volume Total"
+            formatar_moeda(kpis['total_vendas'])
         )
     
     with col2:
         st.metric(
             "Total de Clientes",
-            format_large_number(kpis['total_clientes']),
-            "Base de Clientes"
+            formatar_numero(kpis['total_clientes'])
         )
     
     with col3:
         st.metric(
             "Ticket Médio Global",
-            format_currency(kpis['ticket_medio_global']),
-            "Por Cliente"
+            formatar_moeda(kpis['ticket_medio_global'])
         )
 
-    # Mapa de calor das vendas
-    st.subheader("Distribuição Global de Vendas")
-    fig_map = px.choropleth(
-        dados_pais,
-        locations='pais',
-        locationmode='country names',
-        color='total_vendas',
-        hover_name='pais',
-        hover_data={
-            'total_vendas': ':,.2f',
-            'numero_clientes': ':,',
-            'ticket_medio': ':,.2f'
-        },
-        color_continuous_scale='Viridis',
-        title='Vendas por País'
-    )
-    st.plotly_chart(fig_map, use_container_width=True)
+    # Criando abas para diferentes visualizações
+    tab1, tab2 = st.tabs(["🗺️ Mapa e Gráficos", "📋 Dados Detalhados"])
 
-    # Análise detalhada em duas colunas
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.subheader("Top 10 Países por Volume de Vendas")
-        fig_top_vendas = px.bar(
-            dados_pais.nlargest(10, 'total_vendas'),
-            x='pais',
-            y='total_vendas',
-            title='Top 10 Países - Volume de Vendas',
-            labels={'total_vendas': 'Total de Vendas', 'pais': 'País'}
+    with tab1:
+        # Mapa de calor das vendas
+        st.subheader("Distribuição Global de Vendas")
+        fig_map = px.choropleth(
+            dados_pais,
+            locations='pais',
+            locationmode='country names',
+            color='total_vendas',
+            hover_name='pais',
+            hover_data={
+                'total_vendas': ':,.2f',
+                'numero_clientes': ':,',
+                'ticket_medio': ':,.2f'
+            },
+            color_continuous_scale='Viridis',
+            labels={
+                'total_vendas': 'Total de Vendas (R$)',
+                'numero_clientes': 'Número de Clientes',
+                'ticket_medio': 'Ticket Médio (R$)'
+            }
         )
-        st.plotly_chart(fig_top_vendas, use_container_width=True)
+        st.plotly_chart(fig_map, use_container_width=True)
 
-    with col2:
-        st.subheader("Top 10 Países por Número de Clientes")
-        fig_top_clientes = px.bar(
-            dados_pais.nlargest(10, 'numero_clientes'),
-            x='pais',
-            y='numero_clientes',
-            title='Top 10 Países - Base de Clientes',
-            labels={'numero_clientes': 'Número de Clientes', 'pais': 'País'}
+        # Análise detalhada em duas colunas
+        col1, col2 = st.columns(2)
+
+        with col1:
+            # Top 10 países por volume de vendas
+            fig_top_vendas = px.bar(
+                dados_pais.nlargest(10, 'total_vendas'),
+                x='pais',
+                y='total_vendas',
+                title='Top 10 Países - Volume de Vendas',
+                labels={'total_vendas': 'Total de Vendas (R$)', 'pais': 'País'},
+                color='total_vendas',
+                color_continuous_scale='Viridis'
+            )
+            fig_top_vendas.update_traces(texttemplate='R$%{y:,.2f}', textposition='outside')
+            st.plotly_chart(fig_top_vendas, use_container_width=True)
+
+        with col2:
+            # Top 10 países por número de clientes
+            fig_top_clientes = px.bar(
+                dados_pais.nlargest(10, 'numero_clientes'),
+                x='pais',
+                y='numero_clientes',
+                title='Top 10 Países - Base de Clientes',
+                labels={'numero_clientes': 'Número de Clientes', 'pais': 'País'},
+                color='numero_clientes',
+                color_continuous_scale='Viridis'
+            )
+            fig_top_clientes.update_traces(texttemplate='%{y:,}', textposition='outside')
+            st.plotly_chart(fig_top_clientes, use_container_width=True)
+
+    with tab2:
+        # Tabela detalhada
+        st.subheader("Detalhamento por País")
+        
+        # Preparando DataFrame formatado para exibição
+        df_display = dados_pais.copy()
+        df_display['total_vendas'] = df_display['total_vendas'].apply(formatar_moeda)
+        df_display['ticket_medio'] = df_display['ticket_medio'].apply(formatar_moeda)
+        df_display['numero_clientes'] = df_display['numero_clientes'].apply(formatar_numero)
+        
+        # Renomeando colunas para exibição
+        df_display.columns = ['País', 'Total de Vendas', 'Número de Clientes', 'Ticket Médio']
+        
+        # Exibindo tabela com dados formatados
+        st.dataframe(
+            df_display.sort_values('Total de Vendas', ascending=False),
+            hide_index=True,
+            use_container_width=True
         )
-        st.plotly_chart(fig_top_clientes, use_container_width=True)
 
-    # Tabela detalhada com cache
-    @st.cache_data
-    def format_dataframe(df):
-        df = df.copy()
-        df['total_vendas'] = df['total_vendas'].map(lambda x: f"£ {x:,.2f}")
-        df['ticket_medio'] = df['ticket_medio'].map(lambda x: f"£ {x:,.2f}")
-        return df
+    # Adicionar botão para recarregar os dados
+    if st.button("🔄 Recarregar Dados"):
+        st.cache_data.clear()
+        st.experimental_rerun()
 
-    st.subheader("Detalhamento por País")
-    dados_formatados = format_dataframe(dados_pais)
-    st.dataframe(
-        dados_formatados.sort_values('total_vendas', ascending=False),
-        column_config={
-            'pais': 'País',
-            'total_vendas': 'Total de Vendas',
-            'numero_clientes': 'Número de Clientes',
-            'ticket_medio': 'Ticket Médio'
-        },
-        hide_index=True
-    )
-
+else:
+    st.error("Não foi possível carregar os dados. Por favor, verifique a conexão com a API.")

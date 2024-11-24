@@ -2,10 +2,17 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from utils.api import APIClient
-from utils.locale_config import setup_locale, format_number, format_brl  # Adicionado format_number e format_brl
+from locale_config import setup_locale, format_number, format_brl  # Import direto, pois está no mesmo diretório
 
-# Configurar locale para formatação de números
+# Resto do código permanece exatamente igual
 setup_locale()
+
+# Configuração da página
+st.set_page_config(
+    page_title="Análise de Clientes",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 # Configuração da página
 st.set_page_config(

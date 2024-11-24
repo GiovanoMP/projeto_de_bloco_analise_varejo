@@ -1,25 +1,20 @@
 import streamlit as st
+
+# Primeiro comando Streamlit DEVE ser st.set_page_config
+st.set_page_config(
+    page_title="Análise de Clientes",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Depois vêm os outros imports
 import pandas as pd
 import plotly.express as px
 from utils.api import APIClient
-from locale_config import setup_locale, format_number, format_brl  # Import direto, pois está no mesmo diretório
+from locale_config import setup_locale, format_number, format_brl
 
-# Resto do código permanece exatamente igual
+# Configurar locale para formatação de números
 setup_locale()
-
-# Configuração da página
-st.set_page_config(
-    page_title="Análise de Clientes",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-
-# Configuração da página
-st.set_page_config(
-    page_title="Análise de Clientes",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
 
 # Título da página
 st.title("🌎 Análise Global de Clientes")

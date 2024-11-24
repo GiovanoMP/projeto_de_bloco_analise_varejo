@@ -1,4 +1,4 @@
-import locale
+import locale # teste 
 
 def setup_locale():
     try:

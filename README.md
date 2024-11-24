@@ -4,6 +4,10 @@
 
 O RetailSense é uma aplicação avançada que combina Machine Learning e análise de dados para impulsionar a inovação e sustentabilidade no setor varejista. O projeto se alinha com a Meta 9.5 dos Objetivos de Desenvolvimento Sustentável (ODS) da ONU, focando no fortalecimento da pesquisa científica e melhoria das capacidades tecnológicas de setores industriais.
 
+## 🌐 Acesso ao Dashboard
+
+Acesse nossa aplicação em tempo real: [RetailSense Dashboard](https://dashboardvarejo.streamlit.app/)
+
 ### 🎯 Objetivos Principais
 - Impulsionar a eficiência operacional
 - Melhorar a experiência do cliente

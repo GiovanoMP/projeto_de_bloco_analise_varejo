@@ -81,97 +81,62 @@ st.markdown("""
 st.markdown('<h1 class="main-title">🏪 RetailSense</h1>', unsafe_allow_html=True)
 st.markdown('<h2 class="subtitle">Soluções em Análise de Dados para Varejo</h2>', unsafe_allow_html=True)
 
-# Introdução em card
+# Card de Introdução
 st.markdown("""
 <div class="card">
+    <div class="icon">💡</div>
+    <h3 class="feature-title">Bem-vindo ao RetailSense</h3>
     <p class="feature-text">
-        A RetailSense oferece soluções integradas de análise de dados e ESG para otimização 
+        A RetailSense oferece soluções integradas de análise de dados para otimização 
         de operações no varejo. Nossa plataforma transforma dados em insights acionáveis 
-        através de três principais vertentes:
+        através de tecnologias avançadas e inteligência artificial.
     </p>
 </div>
 """, unsafe_allow_html=True)
 
-# Colunas principais
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    st.markdown("""
-    <div class="card">
-        <div class="icon">📊</div>
-        <h3 class="feature-title">Análise de Dados</h3>
-        <ul>
-            <li>Processamento de dados de vendas</li>
-            <li>Análise de métricas fundamentais</li>
-            <li>Relatórios automatizados</li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
-
-with col2:
-    st.markdown("""
-    <div class="card">
-        <div class="icon">🌱</div>
-        <h3 class="feature-title">Métricas ESG</h3>
-        <ul>
-            <li>Indicadores de sustentabilidade</li>
-            <li>Métricas de governança</li>
-            <li>Relatórios de impacto social</li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
-
-with col3:
-    st.markdown("""
-    <div class="card">
-        <div class="icon">🤖</div>
-        <h3 class="feature-title">Agentes IA</h3>
-        <ul>
-            <li>Análise automatizada</li>
-            <li>Processamento inteligente</li>
-            <li>Suporte à decisão</li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
-
-# Módulos Disponíveis
+# Páginas Disponíveis
 st.markdown("""
 <div class="card">
-    <h3 class="feature-title">📦 Módulos Disponíveis</h3>
+    <h3 class="feature-title">📱 Páginas Disponíveis</h3>
     <ul>
-        <li><span class="highlight">Análise de Vendas</span>
+        <li><span class="highlight">1. Converse com os seus Dados</span>
             <ul>
-                <li>Histórico e tendências</li>
-                <li>Métricas principais</li>
-                <li>Relatórios periódicos</li>
+                <li>Interface conversacional para análise de dados</li>
+                <li>Possibilidade de foco em análises específicas de ESG no varejo</li>
             </ul>
         </li>
-        <li><span class="highlight">Dashboard ESG</span>
+        <li><span class="highlight">2. Gere Relatórios Automaticamente</span>
             <ul>
-                <li>Indicadores ambientais</li>
-                <li>Métricas sociais</li>
-                <li>Governança corporativa</li>
+                <li>Geração automatizada de relatórios personalizados</li>
             </ul>
         </li>
-        <li><span class="highlight">Visualização de Dados</span>
+        <li><span class="highlight">3. Análise de Clientes e Segmentação</span></li>
+        <li><span class="highlight">4. Análise de Produtos</span></li>
+        <li><span class="highlight">5. Análise Geográfica</span></li>
+        <li><span class="highlight">6. Análise Temporal de Vendas</span></li>
+        <li><span class="highlight">7. Download de Dados</span></li>
+        <li><span class="highlight">8. Exemplo de LLM com uso local</span>
             <ul>
-                <li>Gráficos interativos</li>
-                <li>Filtros dinâmicos</li>
-                <li>Exportação de relatórios</li>
+                <li>Demonstração de códigos e implementação</li>
             </ul>
         </li>
     </ul>
 </div>
 """, unsafe_allow_html=True)
 
-# Seção de Desenvolvimento
+# Sobre os Dados
 st.markdown("""
 <div class="card">
-    <h3 class="feature-title">🔬 Em Desenvolvimento</h3>
+    <div class="icon">📊</div>
+    <h3 class="feature-title">Sobre os Dados</h3>
+    <p class="feature-text">
+        O conjunto de dados utilizado provém de uma empresa de varejo online do Reino Unido, 
+        especializada em presentes únicos. Os dados abrangem transações entre 01/12/2010 e 09/12/2011.
+    </p>
     <ul>
-        <li>Expansão das APIs de integração</li>
-        <li>Novos módulos de análise</li>
-        <li>Recursos avançados de visualização</li>
+        <li>541.909 registros de transações</li>
+        <li>6 características principais</li>
+        <li>Dados multivariados com séries temporais</li>
     </ul>
 </div>
 """, unsafe_allow_html=True)
